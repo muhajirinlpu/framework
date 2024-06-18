@@ -23,11 +23,18 @@ abstract class Facade
     protected static $app;
 
     /**
+     * @var \Closure|null
+     */
+    protected static $appResolver = null;
+
+    /**
      * The resolved object instances.
      *
      * @var array
      */
     protected static $resolvedInstance;
+
+    protected static $facadeCacheResolver = null;
 
     /**
      * Indicates if the resolved instance should be cached.
@@ -46,11 +53,11 @@ abstract class Facade
     {
         $accessor = static::getFacadeAccessor();
 
-        if (static::$app->resolved($accessor) === true) {
-            $callback(static::getFacadeRoot(), static::$app);
+        if (static::getFacadeApplication()->resolved($accessor) === true) {
+            $callback(static::getFacadeRoot(), static::getFacadeApplication());
         }
 
-        static::$app->afterResolving($accessor, function ($service, $app) use ($callback) {
+        static::getFacadeApplication()->afterResolving($accessor, function ($service, $app) use ($callback) {
             $callback($service, $app);
         });
     }
@@ -81,7 +88,7 @@ abstract class Facade
         $name = static::getFacadeAccessor();
 
         $mock = static::isMock()
-            ? static::$resolvedInstance[$name]
+            ? static::getResolvedInstance()[$name]
             : static::createFreshMockInstance();
 
         return $mock->makePartial();
@@ -97,7 +104,7 @@ abstract class Facade
         $name = static::getFacadeAccessor();
 
         $mock = static::isMock()
-            ? static::$resolvedInstance[$name]
+            ? static::getResolvedInstance()[$name]
             : static::createFreshMockInstance();
 
         return $mock->shouldReceive(...func_get_args());
@@ -113,7 +120,7 @@ abstract class Facade
         $name = static::getFacadeAccessor();
 
         $mock = static::isMock()
-            ? static::$resolvedInstance[$name]
+            ? static::getResolvedInstance()[$name]
             : static::createFreshMockInstance();
 
         return $mock->expects(...func_get_args());
@@ -154,8 +161,8 @@ abstract class Facade
     {
         $name = static::getFacadeAccessor();
 
-        return isset(static::$resolvedInstance[$name]) &&
-               static::$resolvedInstance[$name] instanceof LegacyMockInterface;
+        return isset(static::getResolvedInstance()[$name]) &&
+            static::getResolvedInstance()[$name] instanceof LegacyMockInterface;
     }
 
     /**
@@ -178,10 +185,10 @@ abstract class Facade
      */
     public static function swap($instance)
     {
-        static::$resolvedInstance[static::getFacadeAccessor()] = $instance;
+        static::addResolvedInstance(static::getFacadeAccessor(), $instance);
 
-        if (isset(static::$app)) {
-            static::$app->instance(static::getFacadeAccessor(), $instance);
+        if (static::getFacadeApplication() !== null) {
+            static::getFacadeApplication()->instance(static::getFacadeAccessor(), $instance);
         }
     }
 
@@ -194,8 +201,8 @@ abstract class Facade
     {
         $name = static::getFacadeAccessor();
 
-        return isset(static::$resolvedInstance[$name]) &&
-               static::$resolvedInstance[$name] instanceof Fake;
+        return isset(static::getResolvedInstance()[$name]) &&
+            static::getResolvedInstance()[$name] instanceof Fake;
     }
 
     /**
@@ -228,17 +235,42 @@ abstract class Facade
      */
     protected static function resolveFacadeInstance($name)
     {
-        if (isset(static::$resolvedInstance[$name])) {
-            return static::$resolvedInstance[$name];
+        if (isset(static::getResolvedInstance()[$name])) {
+            return static::getResolvedInstance()[$name];
         }
 
-        if (static::$app) {
+        if (static::getFacadeApplication()) {
             if (static::$cached) {
-                return static::$resolvedInstance[$name] = static::$app[$name];
+                $instance = static::getFacadeApplication()[$name];
+
+                static::addResolvedInstance($name, $instance);
+
+                return $instance;
             }
 
-            return static::$app[$name];
+            return static::getFacadeApplication()[$name];
         }
+    }
+
+    public static function getResolvedInstance(): array
+    {
+        if (self::$facadeCacheResolver) {
+            return (self::$facadeCacheResolver)();
+        }
+
+        return self::$resolvedInstance;
+    }
+
+    public static function addResolvedInstance(string $facadeAccessor, mixed $instance): void
+    {
+        if (self::$facadeCacheResolver) {
+            $resolver = (self::$facadeCacheResolver)();
+
+            $resolver[$facadeAccessor] = $instance;
+            return;
+        }
+
+        self::$resolvedInstance[$facadeAccessor] = $instance;
     }
 
     /**
@@ -249,7 +281,7 @@ abstract class Facade
      */
     public static function clearResolvedInstance($name)
     {
-        unset(static::$resolvedInstance[$name]);
+        unset(static::getResolvedInstance()[$name]);
     }
 
     /**
@@ -323,7 +355,7 @@ abstract class Facade
      */
     public static function getFacadeApplication()
     {
-        return static::$app;
+        return static::$appResolver ? (static::$appResolver)() : static::$app;
     }
 
     /**
@@ -335,6 +367,16 @@ abstract class Facade
     public static function setFacadeApplication($app)
     {
         static::$app = $app;
+    }
+
+    public static function setFacadeApplicationResolver(\Closure $resolver)
+    {
+        static::$appResolver = $resolver;
+    }
+
+    public static function setFacadeCacheResolver(\Closure $resolver)
+    {
+        static::$facadeCacheResolver = $resolver;
     }
 
     /**

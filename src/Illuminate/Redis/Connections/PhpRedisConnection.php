@@ -311,7 +311,7 @@ class PhpRedisConnection extends Connection implements ConnectionContract
      */
     public function scan($cursor, $options = [])
     {
-        $result = $this->client->scan($cursor,
+        $result = $this->client()->scan($cursor,
             $options['match'] ?? '*',
             $options['count'] ?? 10
         );
@@ -333,7 +333,7 @@ class PhpRedisConnection extends Connection implements ConnectionContract
      */
     public function zscan($key, $cursor, $options = [])
     {
-        $result = $this->client->zscan($key, $cursor,
+        $result = $this->client()->zscan($key, $cursor,
             $options['match'] ?? '*',
             $options['count'] ?? 10
         );
@@ -355,7 +355,7 @@ class PhpRedisConnection extends Connection implements ConnectionContract
      */
     public function hscan($key, $cursor, $options = [])
     {
-        $result = $this->client->hscan($key, $cursor,
+        $result = $this->client()->hscan($key, $cursor,
             $options['match'] ?? '*',
             $options['count'] ?? 10
         );
@@ -377,7 +377,7 @@ class PhpRedisConnection extends Connection implements ConnectionContract
      */
     public function sscan($key, $cursor, $options = [])
     {
-        $result = $this->client->sscan($key, $cursor,
+        $result = $this->client()->sscan($key, $cursor,
             $options['match'] ?? '*',
             $options['count'] ?? 10
         );
@@ -456,7 +456,7 @@ class PhpRedisConnection extends Connection implements ConnectionContract
      */
     public function subscribe($channels, Closure $callback)
     {
-        $this->client->subscribe((array) $channels, function ($redis, $channel, $message) use ($callback) {
+        $this->client()->subscribe((array) $channels, function ($redis, $channel, $message) use ($callback) {
             $callback($message, $channel);
         });
     }
@@ -470,7 +470,7 @@ class PhpRedisConnection extends Connection implements ConnectionContract
      */
     public function psubscribe($channels, Closure $callback)
     {
-        $this->client->psubscribe((array) $channels, function ($redis, $pattern, $channel, $message) use ($callback) {
+        $this->client()->psubscribe((array) $channels, function ($redis, $pattern, $channel, $message) use ($callback) {
             $callback($message, $channel);
         });
     }
@@ -548,7 +548,7 @@ class PhpRedisConnection extends Connection implements ConnectionContract
      */
     public function disconnect()
     {
-        $this->client->close();
+        $this->client()->close();
     }
 
     /**

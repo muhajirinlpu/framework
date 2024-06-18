@@ -113,7 +113,7 @@ abstract class Connection
     {
         $start = microtime(true);
 
-        $result = $this->client->{$method}(...$parameters);
+        $result = $this->client()->{$method}(...$parameters);
 
         $time = round((microtime(true) - $start) * 1000, 2);
 

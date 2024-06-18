@@ -15,7 +15,7 @@ class PhpRedisClusterConnection extends PhpRedisConnection
 
         $async = strtoupper((string) ($arguments[0] ?? null)) === 'ASYNC';
 
-        foreach ($this->client->_masters() as $master) {
+        foreach ($this->client()->_masters() as $master) {
             $async
                 ? $this->command('rawCommand', [$master, 'flushdb', 'async'])
                 : $this->command('flushdb', [$master]);

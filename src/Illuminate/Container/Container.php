@@ -24,6 +24,8 @@ class Container implements ArrayAccess, ContainerContract
      */
     protected static $instance;
 
+    protected static \Closure|null $instanceResolver = null;
+
     /**
      * An array of the types that have been resolved.
      *
@@ -1406,11 +1408,23 @@ class Container implements ArrayAccess, ContainerContract
      */
     public static function getInstance()
     {
-        if (is_null(static::$instance)) {
-            static::$instance = new static;
+//        if (is_null(static::$instance)) {
+//            static::$instance = new static;
+//        }
+//
+//        return static::$instance;
+
+        $instance = static::$instanceResolver !== null
+            ? (static::$instanceResolver)()
+            : static::$instance;
+
+        if (is_null($instance) && is_null(static::$instanceResolver)) {
+            $instance = new static;
+
+            static::$instance = $instance;
         }
 
-        return static::$instance;
+        return $instance;
     }
 
     /**
@@ -1421,7 +1435,20 @@ class Container implements ArrayAccess, ContainerContract
      */
     public static function setInstance(?ContainerContract $container = null)
     {
-        return static::$instance = $container;
+        if (! is_null(static::$instanceResolver)) {
+            $resolver = static::$instanceResolver;
+            $resolver()['app'] = $container;
+        } else {
+            static::$instance = $container;
+        }
+
+
+        return $container;
+    }
+
+    public static function setInstanceResolver(Closure $instanceResolver): void
+    {
+        self::$instanceResolver = $instanceResolver;
     }
 
     /**

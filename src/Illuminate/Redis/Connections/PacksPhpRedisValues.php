@@ -52,30 +52,30 @@ trait PacksPhpRedisValues
                 }
 
                 $processor = function ($value) {
-                    return \lzf_compress($this->client->_serialize($value));
+                    return \lzf_compress($this->client()->_serialize($value));
                 };
             } elseif ($this->supportsZstd() && $this->zstdCompressed()) {
                 if (! function_exists('zstd_compress')) {
                     throw new RuntimeException("'zstd' extension required to call 'zstd_compress'.");
                 }
 
-                $compressionLevel = $this->client->getOption(Redis::OPT_COMPRESSION_LEVEL);
+                $compressionLevel = $this->client()->getOption(Redis::OPT_COMPRESSION_LEVEL);
 
                 $processor = function ($value) use ($compressionLevel) {
                     return \zstd_compress(
-                        $this->client->_serialize($value),
+                        $this->client()->_serialize($value),
                         $compressionLevel === 0 ? Redis::COMPRESSION_ZSTD_DEFAULT : $compressionLevel
                     );
                 };
             } else {
                 throw new UnexpectedValueException(sprintf(
                     'Unsupported phpredis compression in use [%d].',
-                    $this->client->getOption(Redis::OPT_COMPRESSION)
+                    $this->client()->getOption(Redis::OPT_COMPRESSION)
                 ));
             }
         } else {
             $processor = function ($value) {
-                return $this->client->_serialize($value);
+                return $this->client()->_serialize($value);
             };
         }
 
@@ -90,7 +90,7 @@ trait PacksPhpRedisValues
     public function compressed(): bool
     {
         return defined('Redis::OPT_COMPRESSION') &&
-               $this->client->getOption(Redis::OPT_COMPRESSION) !== Redis::COMPRESSION_NONE;
+               $this->client()->getOption(Redis::OPT_COMPRESSION) !== Redis::COMPRESSION_NONE;
     }
 
     /**
@@ -101,7 +101,7 @@ trait PacksPhpRedisValues
     public function lzfCompressed(): bool
     {
         return defined('Redis::COMPRESSION_LZF') &&
-               $this->client->getOption(Redis::OPT_COMPRESSION) === Redis::COMPRESSION_LZF;
+               $this->client()->getOption(Redis::OPT_COMPRESSION) === Redis::COMPRESSION_LZF;
     }
 
     /**
@@ -112,7 +112,7 @@ trait PacksPhpRedisValues
     public function zstdCompressed(): bool
     {
         return defined('Redis::COMPRESSION_ZSTD') &&
-               $this->client->getOption(Redis::OPT_COMPRESSION) === Redis::COMPRESSION_ZSTD;
+               $this->client()->getOption(Redis::OPT_COMPRESSION) === Redis::COMPRESSION_ZSTD;
     }
 
     /**
@@ -123,7 +123,7 @@ trait PacksPhpRedisValues
     public function lz4Compressed(): bool
     {
         return defined('Redis::COMPRESSION_LZ4') &&
-               $this->client->getOption(Redis::OPT_COMPRESSION) === Redis::COMPRESSION_LZ4;
+               $this->client()->getOption(Redis::OPT_COMPRESSION) === Redis::COMPRESSION_LZ4;
     }
 
     /**
