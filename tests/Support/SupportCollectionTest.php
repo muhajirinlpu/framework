@@ -347,6 +347,34 @@ class SupportCollectionTest extends TestCase
         $this->assertSame('baz', $data->first());
 
         $this->assertEquals(new Collection(['foo', 'bar', 'baz']), (new Collection(['foo', 'bar', 'baz']))->shift(6));
+
+        $data = new Collection(['foo', 'bar', 'baz']);
+
+        $this->assertEquals(new Collection([]), $data->shift(0));
+        $this->assertEquals(collect(['foo', 'bar', 'baz']), $data);
+
+        $this->expectException('InvalidArgumentException');
+        (new Collection(['foo', 'bar', 'baz']))->shift(-1);
+
+        $this->expectException('InvalidArgumentException');
+        (new Collection(['foo', 'bar', 'baz']))->shift(-2);
+    }
+
+    public function testShiftReturnsNullOnEmptyCollection()
+    {
+        $itemFoo = new \stdClass();
+        $itemFoo->text = 'f';
+        $itemBar = new \stdClass();
+        $itemBar->text = 'x';
+
+        $items = collect([$itemFoo, $itemBar]);
+
+        $foo = $items->shift();
+        $bar = $items->shift();
+
+        $this->assertSame('f', $foo?->text);
+        $this->assertSame('x', $bar?->text);
+        $this->assertNull($items->shift());
     }
 
     #[DataProvider('collectionClassProvider')]
@@ -1228,6 +1256,25 @@ class SupportCollectionTest extends TestCase
         $this->assertEquals(
             ['name' => 'Hello', 'id' => 1, 'meta' => ['tags' => ['a', 'b', 'c'], 'roles' => ['admin', 'editor']]],
             $c->mergeRecursive(new $collection(['meta' => ['tags' => ['c'], 'roles' => 'editor']]))->all()
+        );
+    }
+
+    #[DataProvider('collectionClassProvider')]
+    public function testMultiplyCollection($collection)
+    {
+        $c = new $collection(['Hello', 1, ['tags' => ['a', 'b'], 'admin']]);
+
+        $this->assertEquals([], $c->multiply(-1)->all());
+        $this->assertEquals([], $c->multiply(0)->all());
+
+        $this->assertEquals(
+            ['Hello', 1, ['tags' => ['a', 'b'], 'admin']],
+            $c->multiply(1)->all()
+        );
+
+        $this->assertEquals(
+            ['Hello', 1, ['tags' => ['a', 'b'], 'admin'], 'Hello', 1, ['tags' => ['a', 'b'], 'admin'], 'Hello', 1, ['tags' => ['a', 'b'], 'admin']],
+            $c->multiply(3)->all()
         );
     }
 

@@ -2,11 +2,39 @@
 
 namespace Illuminate\Tests\Integration\Console;
 
+use Orchestra\Testbench\Concerns\InteractsWithPublishedFiles;
 use Orchestra\Testbench\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class GeneratorCommandTest extends TestCase
 {
+    use InteractsWithPublishedFiles;
+
+    protected $files = [
+        'app/Console/Commands/FooCommand.php',
+        'resources/views/foo/php.blade.php',
+    ];
+
+    public function testItChopsPhpExtension()
+    {
+        $this->artisan('make:command', ['name' => 'FooCommand.php'])
+            ->assertExitCode(0);
+
+        $this->assertFilenameExists('app/Console/Commands/FooCommand.php');
+
+        $this->assertFileContains([
+            'class FooCommand extends Command',
+        ], 'app/Console/Commands/FooCommand.php');
+    }
+
+    public function testItChopsPhpExtensionFromMakeViewCommands()
+    {
+        $this->artisan('make:view', ['name' => 'foo.php'])
+            ->assertExitCode(0);
+
+        $this->assertFilenameExists('resources/views/foo/php.blade.php');
+    }
+
     #[DataProvider('reservedNamesDataProvider')]
     public function testItCannotGenerateClassUsingReservedName($given)
     {
